@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ATS Resume Matcher</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 30px; }
+    h1 { color: #2c3e50; }
+    .container { max-width: 600px; margin: auto; }
+    .result { margin-top: 20px; font-size: 16px; font-weight: bold; color: #27ae60; white-space: pre-wrap; }
+    button { margin-top: 15px; padding: 10px 20px; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>ATS Resume Matcher</h1>
+    <form id="resumeForm">
+      <label for="resume">Upload Resume (PDF/DOCX/TXT):</label><br>
+      <input type="file" id="resume" name="resume" required><br><br>
+
+      <label for="jd">Job Description:</label><br>
+      <textarea id="jd" name="jd" rows="6" cols="60" required></textarea><br><br>
+
+      <button type="submit">Check Match</button>
+    </form>
+
+    <div class="result" id="result"></div>
+  </div>
+
+  <script>
+    document.getElementById("resumeForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const formData = new FormData();
+      formData.append("resume_file", document.getElementById("resume").files[0]); // ✅ matches backend param
+      formData.append("jd_text", document.getElementById("jd").value); // ✅ matches backend param
+
+      try {
+        const response = await fetch("/check_resume", {   // ✅ same server (8000)
+          method: "POST",
+          headers: {
+            "X-API-KEY": "test123"   // ✅ correct header name
+          },
+          body: formData
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          document.getElementById("result").innerText = "❌ Error: " + (error.detail || error.error);
+          return;
+        }
+
+        const data = await response.json();
+        document.getElementById("result").innerText =
+          `✅ Match Results:\n` +
+          `Keyword Match Score: ${data.keyword_match_score}%\n` +
+          `TF-IDF Score: ${data.tfidf_score}%\n` +
+          `Final Score: ${data.final_score}%\n` +
+          `Missing Skills: ${data.missing_skills.join(", ") || "None"}`;
+      } catch (error) {
+        document.getElementById("result").innerText = "⚠️ Failed to connect to backend.";
+      }
+    });
+  </script>
+</body>
+</html>
